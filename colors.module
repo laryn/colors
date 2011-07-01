@@ -1,0 +1,215 @@
+<?php
+
+/**
+ * @file
+ * Provides an API to match selectors with a color configuration
+ */
+
+/**
+ * Gets an array of all the selectors.
+ *
+ * @return
+ *   Array containing all the selectors.
+ */
+function colors_get_selectors() {
+  $result = db_select('colors', 'c')
+    ->fields('c', array('selector'))
+    ->execute();
+
+  return $result;
+}
+
+/**
+ * Gets the color of a given selector.
+ *
+ * @param $selector
+ *   The name of the selector.
+ *
+ * @return
+ *   Color configuration for the giving selector.
+ */
+function colors_get_color_configuration($selector) {
+  $result = db_select('colors', 'c')
+    ->fields('c', array('color'))
+    ->condition('selector', $selector)
+    ->execute()
+    ->fetchAssoc();
+
+  return unserialize($result['color']);
+}
+
+/**
+ * Gets all the color configurations of a given module.
+ *
+ * @param $module
+ *   The name of the given module.
+ *
+ * @return
+ *   Color configuration for the selectors created by the given module.
+ */
+function colors_get_color_configuration_module($module) {
+  $results = db_select('colors', 'c')
+    ->fields('c', array('selector', 'color'))
+    ->condition('module', $module)
+    ->execute()
+    ->fetchAllAssoc('selector', PDO::FETCH_ASSOC);
+
+  // Unserialize the color info
+  foreach ($results as $result) {
+    $result['color'] = unserialize($result['color']);
+  }
+
+  return $results;
+}
+
+/**
+ * Sets the color configuration for a given selector.
+ *
+ * @param $selector
+ *   The name of the selector.
+ * @param $color
+ *   The updated color configuration.
+ */
+function colors_set_color_configuration($selector, $color, $module = 'colors') {
+  db_merge('colors')
+    ->key(array('selector' => $selector))
+    ->fields(array(
+      'color' => serialize($color),
+      'module' => $module,
+    ))
+    ->execute();
+}
+
+/**
+ * Deletes a selector.
+ *
+ * @param $selector
+ *   The selector to remove.
+ */
+function colors_delete_selector($selector) {
+  db_delete('colors')
+    ->condition('selector', $selector)
+    ->execute();
+}
+
+/**
+ * Deletes all the selectors from a specfic module.
+ *
+ * @param $module
+ *   The module the selectors should be removed from.
+ */
+function colors_delete_selectors($module) {
+  db_delete('colors')
+    ->condition('module', $module)
+    ->execute();
+}
+
+/**
+ * Renames a given selector.
+ *
+ * @param $oldselector
+ *   The name of the given selector.
+ * @param $newselector
+ *   The new name for the selector.
+ */
+function colors_rename_selector($oldselector, $newselector) {
+  db_update('colors')
+    ->fields(array(
+      'selector' => $newselector,
+    ))
+    ->condition('selector', $oldselector)
+    ->execute();
+}
+
+/**
+ * Gets all the color options.
+ *
+ * @return
+ *   Array containing all the possible colorable features.
+ */
+function colors_get_color_options() {
+  $color_options = array(
+    'background',
+    'text',
+    'border',
+  );
+
+  return $color_options;
+}
+
+/**
+ * Gets the color configuration mapping.
+ *
+ * @return
+ *   Mapping between the colorable features and the css input.
+ */
+function colors_get_color_mapping() {
+  $color_mapping = array(
+    'background' => 'background-color',
+    'text' =>  'color',
+    'border' => 'border-color',
+  );
+
+  return $color_mapping;
+}
+
+/**
+ * Inserts css from a specific module.
+ *
+ * @param $module
+ *   The module of which to insert the css.
+ * @param $default_color_configuration
+ *   Configuration if we don't have a matching configuration in the database.
+ */
+function colors_insert_css_from_module($module, $default_color_configuration = array()) {
+  $module_colors = colors_get_color_configuration_module($module);
+
+  foreach ($module_colors as $selector => $color_blob) {
+    $css .= colors_build_css($selector, $color_blob, $default_color_configuration);
+  }
+  drupal_add_css($css, 'inline');
+}
+
+/**
+ * Inserts css from a specific list of selectors.
+ *
+ * @param $selectors
+ *   An array of selectors you would like to insert in that order.
+ * @param $default_color_configuration
+ *   Configuration if we don't have a matching configuration in the database.
+ */
+function colors_insert_css_from_selectors($selectors, $default_color_configuration = array()) {
+  $css = '';
+  foreach ($selectors as $selector) {
+    $color_configuration = colors_get_color_configuration($selector);
+    $css .= colors_build_css($selector, $color_configuration, $default_color_configuration);
+  }
+  drupal_add_css($css, 'inline');
+}
+
+/**
+ * Builds a css string based on a selector and a color configuration.
+ *
+ * @param $selector
+ *   The selector used to build the css string.
+ * @param $color_configuration
+ *   The color configuration used to build the css string.
+ *
+ * @return $css
+ *   The constructed css string.
+ */
+function colors_build_css($selector, $color_configuration, $default_color_configuration = array()) {
+  $color_mapping = colors_get_color_mapping();
+
+  if (empty($color_configuration))
+    $color_configuration = $default_color_configuration;
+
+  $css = $selector;
+  $css .= ' {';
+  foreach ($color_configuration as $option => $color) {
+    $css .= $color_mapping[$option] . ': ' . $color . ';';
+  }
+  $css .= ' } ';
+
+  return $css;
+}
