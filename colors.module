@@ -165,7 +165,7 @@ function colors_insert_css_from_module($module, $default_color_configuration = a
   $module_colors = colors_get_color_configuration_module($module);
 
   foreach ($module_colors as $selector => $color_blob) {
-    $css .= colors_build_css($selector, $color_blob, $default_color_configuration);
+    $css .= colors_build_css($selector, $color_blob, $default_color_configuration, $module);
   }
   drupal_add_css($css, 'inline');
 }
@@ -178,11 +178,11 @@ function colors_insert_css_from_module($module, $default_color_configuration = a
  * @param $default_color_configuration
  *   Configuration if we don't have a matching configuration in the database.
  */
-function colors_insert_css_from_selectors($selectors, $default_color_configuration = array()) {
+function colors_insert_css_from_selectors($selectors, $module = 'colors', $default_color_configuration = array()) {
   $css = '';
   foreach ($selectors as $selector) {
     $color_configuration = colors_get_color_configuration($selector);
-    $css .= colors_build_css($selector, $color_configuration, $default_color_configuration);
+    $css .= colors_build_css($selector, $color_configuration, $module);
   }
   drupal_add_css($css, 'inline');
 }
@@ -198,11 +198,14 @@ function colors_insert_css_from_selectors($selectors, $default_color_configurati
  * @return $css
  *   The constructed css string.
  */
-function colors_build_css($selector, $color_configuration, $default_color_configuration = array()) {
+function colors_build_css($selector, $color_configuration, $module = 'colors', $default_color_configuration = array()) {
   $color_mapping = colors_get_color_mapping();
 
   if (empty($color_configuration))
     $color_configuration = $default_color_configuration;
+    
+  // Rewrite the selector if needed
+  $selector = module_invoke($module, 'build_selector', $selector);
 
   $css = $selector;
   $css .= ' {';
@@ -212,4 +215,17 @@ function colors_build_css($selector, $color_configuration, $default_color_config
   $css .= ' } ';
 
   return $css;
+}
+
+/**
+ * Builds a selector string.
+ *
+ * @param $class
+ *   Classname used for the new selector string.
+ *
+ * @return $selector
+ *   The build selector.
+ */
+function colors_build_selector($class) {
+  return $class;
 }
