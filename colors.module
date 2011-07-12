@@ -131,8 +131,13 @@ function colors_rename_selector($old_selector, $new_selector) {
  * @return
  *   Array containing all the possible colorable features.
  */
-function colors_get_color_options() {
-  return array_keys(colors_get_color_mapping());
+function colors_get_color_options($module = "colors") {
+  // Fetch color mapping
+  if(module_hook($module, 'colors_get_color_mapping'))
+    $color_mapping = module_invoke($module, 'colors_get_color_mapping');
+  else
+    $color_mapping = colors_colors_get_color_mapping();
+  return array_keys($color_mapping);
 }
 
 /**
@@ -141,7 +146,7 @@ function colors_get_color_options() {
  * @return
  *   Mapping between the colorable features and the CSS input.
  */
-function colors_get_color_mapping() {
+function colors_colors_get_color_mapping() {
   return array(
     'background' => 'background-color',
     'text' =>  'color',
@@ -194,7 +199,11 @@ function colors_insert_css_from_selectors($selectors, $module = 'colors', $defau
  *   The constructed CSS string.
  */
 function colors_build_css($selector, $colors, $module = 'colors', $default_colors = array()) {
-  $color_mapping = colors_get_color_mapping();
+  // Fetch color mapping
+  if(module_hook($module, 'colors_get_color_mapping'))
+    $color_mapping = module_invoke($module, 'colors_get_color_mapping');
+  else
+    $color_mapping = colors_colors_get_color_mapping();
 
   if (empty($colors)) {
     if (empty($default_colors)) {
@@ -204,7 +213,10 @@ function colors_build_css($selector, $colors, $module = 'colors', $default_color
   }
 
   // Rewrite the selector if needed
-  $css = module_invoke($module, 'colors_build_selector', $selector);
+  if(module_hook($module, 'colors_build_selector'))
+    $css = module_invoke($module, 'colors_build_selector', $selector);
+  else
+    $css = $selector;
   $css .= ' {';
   foreach ($colors as $option => $color) {
     $css .= $color_mapping[$option] . ': ' . $color . ';';
