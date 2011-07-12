@@ -6,7 +6,7 @@
  */
 
 /**
- * Implements hook_schema()
+ * Implements hook_schema().
  */
 function colors_schema() {
   $schema['colors'] = array(
@@ -38,6 +38,5 @@ function colors_schema() {
     ),
     'primary key' => array('selector'),
   );
-
   return $schema;
 }
