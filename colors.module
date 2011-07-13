@@ -190,7 +190,7 @@ function colors_insert_css_from_selectors($selectors, $module = 'colors', $defau
  * @param $colors
  *   The color configuration used to build the CSS string.
  *
- * @return $css
+ * @return
  *   The constructed CSS string.
  */
 function colors_build_css($selector, $colors, $module = 'colors', $default_colors = array()) {
@@ -220,9 +220,26 @@ function colors_build_css($selector, $colors, $module = 'colors', $default_color
  * @param $class
  *   Classname used for the new selector string.
  *
- * @return $selector
+ * @return
  *   The build selector.
  */
 function colors_colors_build_selector($class) {
   return $class;
+}
+
+/**
+ * Loads a farbtastic colorpicker.
+ */
+function colors_load_colorpicker() {
+  // JS for our Farbtastic integration.
+  ctools_add_js('colors.admin', 'colors');
+  // CSS and JS for Farbtastic color picker.
+  drupal_add_library('system', 'farbtastic');
+
+  return array(
+    'color_picker' => array(
+      '#prefix' => '<div id="colors-colorpicker">',
+      '#suffix' => '</div>',
+    ),
+  );
 }
