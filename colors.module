@@ -131,13 +131,8 @@ function colors_rename_selector($old_selector, $new_selector) {
  * @return
  *   Array containing all the possible colorable features.
  */
-function colors_get_color_options($module = "colors") {
-  // Fetch color mapping
-  if(module_hook($module, 'colors_get_color_mapping'))
-    $color_mapping = module_invoke($module, 'colors_get_color_mapping');
-  else
-    $color_mapping = colors_colors_get_color_mapping();
-  return array_keys($color_mapping);
+function colors_get_color_options($module = 'colors') {
+  return array_keys(colors_invoke($module, 'colors_get_color_mapping'));
 }
 
 /**
@@ -199,11 +194,8 @@ function colors_insert_css_from_selectors($selectors, $module = 'colors', $defau
  *   The constructed CSS string.
  */
 function colors_build_css($selector, $colors, $module = 'colors', $default_colors = array()) {
-  // Fetch color mapping
-  if(module_hook($module, 'colors_get_color_mapping'))
-    $color_mapping = module_invoke($module, 'colors_get_color_mapping');
-  else
-    $color_mapping = colors_colors_get_color_mapping();
+  // Fetch color mapping.
+  $color_mapping = colors_invoke($module, 'colors_get_color_mapping');
 
   if (empty($colors)) {
     if (empty($default_colors)) {
@@ -213,10 +205,7 @@ function colors_build_css($selector, $colors, $module = 'colors', $default_color
   }
 
   // Rewrite the selector if needed
-  if(module_hook($module, 'colors_build_selector'))
-    $css = module_invoke($module, 'colors_build_selector', $selector);
-  else
-    $css = $selector;
+  $css = colors_invoke($module, 'colors_build_selector', $selector);
   $css .= ' {';
   foreach ($colors as $option => $color) {
     $css .= $color_mapping[$option] . ': ' . $color . ';';
@@ -254,4 +243,23 @@ function colors_load_colorpicker() {
       '#suffix' => '</div>',
     ),
   );
+}
+
+/**
+ * Wrapper function for module_invoke() providing a fallback.
+ *
+ * @param $module
+ *   The name of the module.
+ * @param $hook
+ *   The name of the hook to invoke.
+ *
+ * @return
+ *   The return value of the hook implementation.
+ */
+function colors_invoke($module, $hook) {
+  $args = func_get_args();
+  if ($module != 'colors' && !module_hook($module, $hook)) {
+    $args[0] = 'colors';
+  }
+  return call_user_func_array('module_invoke', $args);
 }
