@@ -136,6 +136,8 @@ function colors_get_color_options($module = 'colors') {
 }
 
 /**
+ * Implements hook_colors_get_color_mapping().
+ *
  * Gets the color configuration mapping.
  *
  * @return
@@ -216,13 +218,15 @@ function colors_build_css($selector, $colors, $module = 'colors', $default_color
 }
 
 /**
+ * Implements hook_colors_build_selector().
+ *
  * Builds a selector string.
  *
  * @param $class
- *   Classname used for the new selector string.
+ *   Class name used for the new selector string.
  *
  * @return
- *   The build selector.
+ *   The built selector.
  */
 function colors_colors_build_selector($class) {
   return $class;
