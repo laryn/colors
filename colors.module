@@ -48,6 +48,26 @@ function colors_get_colors($selector, $module = 'colors', $default = FALSE) {
 }
 
 /**
+ * Checks if there is a color configuration for this selector.
+ *
+ * @param $selector
+ *   The name of the selector.
+ *
+ * @return
+ *   TRUE if the selector has a color configuration
+ *   FALSE if the selector doesn't have a color configuration
+ */
+function colors_colors_exist($selector) {
+  $result = db_select('colors', 'c')
+    ->fields('c', array('color'))
+    ->condition('selector', $selector)
+    ->execute()
+    ->fetchField();
+
+  return (!empty($result));
+}
+
+/**
  * Gets all the color configurations of a given module.
  *
  * @param $module
