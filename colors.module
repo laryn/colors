@@ -201,7 +201,7 @@ function colors_insert_css_from_selectors($selectors, $module = 'colors', $defau
     $colors = colors_get_colors($selector, $module);
     $css .= colors_build_css($selector, $colors, $module, $default_colors);
   }
-  drupal_add_css($css, 'inline');
+  drupal_add_css($css, array('type' => 'inline', 'weight' => 1));
 }
 
 /**
