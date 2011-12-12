@@ -6,6 +6,117 @@
  */
 
 /**
+ * Implements hook_menu().
+ */
+function colors_menu() {
+  $items = array();
+
+  $base = array(
+    'file' => 'colors.admin.inc',
+    'file path' => drupal_get_path('module', 'colors') . '/includes',
+    'page callback' => 'drupal_get_form',
+    'access arguments' => array('administer site configuration'),
+  );
+
+  $items['admin/config/user-interface/colors'] = array(
+    'title' => 'Colors',
+    'description' => 'Adjust Colors settings.',
+    'page arguments' => array('colors_admin_settings'),
+    'type' => MENU_NORMAL_ITEM,
+    'weight' => 1,
+  ) + $base;
+
+  foreach (colors_include_api() as $module => $data) {
+    if (!$colors_info = module_invoke($module, 'colors_info')) {
+      continue;
+    }
+
+    foreach ($colors_info as $type => $info) {
+      $items["admin/config/user-interface/colors/$type"] = array(
+        'title' => $info['title'],
+        'page callback' => 'drupal_get_form',
+        'page arguments' => array("colors_admin_$type" . '_settings'),
+        'file' => "$module.colors.inc",
+        'file path' => $data['path'],
+        'access arguments' => array('administer site configuration'),
+        'type' => MENU_LOCAL_TASK,
+      );
+    }
+  }
+
+  $items['admin/config/user-interface/colors/settings'] = array(
+    'title' => 'Settings',
+    'page arguments' => array('colors_admin_settings'),
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+    'weight' => -10,
+  ) + $base;
+
+  return $items;
+}
+
+/**
+ * Implements hook_theme().
+ */
+function colors_theme() {
+  return array(
+    'colors_admin_settings' => array(
+      'render element' => 'form',
+      'file' => 'includes/colors.admin.inc',
+    ),
+  );
+}
+
+/**
+ * Implements hook_help().
+ */
+function colors_help($path, $arg) {
+  switch ($path) {
+    case 'admin/help#colors':
+      return '<p>' . t('You can configure colors for your events based on taxonomy terms, node types, etc. on the <a href="@link">Colors administration page</a>.', array('@link' => '/admin/config/user-interface/colors')) . '</p>';
+      break;
+  }
+}
+
+/**
+ * Includes all Colors API plugins.
+ */
+function colors_include_api() {
+  ctools_include('plugins');
+  return ctools_plugin_api_include('colors', 'colors', colors_api_version(), colors_api_minimum_version());
+}
+
+/**
+ * Implements hook_ctools_plugin_api_hook_name().
+ */
+function colors_ctools_plugin_api_hook_name() {
+  return 'colors_api';
+}
+
+/**
+ * Implements hook_colors_api().
+ */
+function colors_colors_api() {
+  return array(
+    'api' => colors_api_version(),
+    'path' => drupal_get_path('module', 'colors') . '/includes',
+  );
+}
+
+/**
+ * Declares the current Colors API version.
+ */
+function colors_api_version() {
+  return '1';
+}
+
+/**
+ * Declares the minimum Colors API version.
+ */
+function colors_api_minimum_version() {
+  return '1';
+}
+
+/**
  * Gets an array of all the selectors.
  *
  * @return
@@ -172,36 +283,38 @@ function colors_colors_get_color_mapping() {
 }
 
 /**
- * Inserts CSS from a specific module.
+ * Retrieves or generates a CSS file with a given module's selector.
  *
- * @param $module
- *   The module of which to insert the CSS.
- * @param $default_colors
- *   Configuration if we don't have a matching configuration in the database.
- */
-function colors_insert_css_from_module($module, $default_colors = array()) {
-  $css = '';
-  foreach (colors_get_module_colors($module) as $selector => $colors) {
-    $css .= colors_build_css($selector, $colors, $module, $default_colors);
-  }
-  drupal_add_css($css, 'inline');
-}
-
-/**
- * Inserts CSS from a specific list of selectors.
+ * @param string $caller
+ *   A module that implements hook_colors_build_selector().
  *
- * @param $selectors
- *   An array of selectors you would like to insert in that order.
- * @param $module
- *   The name of the module.
+ * @return string
+ *   The filename of the generated CSS.
  */
-function colors_insert_css_from_selectors($selectors, $module = 'colors', $default_colors = array()) {
-  $css = '';
-  foreach ($selectors as $selector) {
-    $colors = colors_get_colors($selector, $module);
-    $css .= colors_build_css($selector, $colors, $module, $default_colors);
+function colors_create_css($caller) {
+  ctools_include('css');
+  $filename = ctools_css_retrieve($caller . ':colors');
+  if (!$filename) {
+    colors_include_api();
+    $css = array();
+    $delta = 0;
+    foreach (module_invoke_all('colors_info') as $module => $info) {
+      if (!variable_get('colors_' . $module . '_enabled', FALSE)) {
+        continue;
+      }
+      $weight = variable_get('colors_weight_' . $module, $delta - 100);
+      if (!isset($css[$weight])) {
+        $css[$weight] = '';
+      }
+      foreach (colors_get_module_colors($module) as $selector => $colors) {
+        $css[$weight] .= colors_build_css($selector, $colors, $caller);
+      }
+      $delta++;
+    }
+    ksort($css);
+    $filename = ctools_css_store($caller . ':colors', implode("\n", $css));
   }
-  drupal_add_css($css, array('type' => 'inline', 'weight' => 1));
+  return $filename;
 }
 
 /**
@@ -227,7 +340,7 @@ function colors_build_css($selector, $colors, $module = 'colors', $default_color
   }
 
   // Rewrite the selector if needed
-  $css = colors_invoke($module, 'colors_build_selector', $selector);
+  $css = colors_invoke($module, 'colors_build_selector', drupal_html_class($selector));
   $css .= ' {';
   foreach ($colors as $option => $color) {
     $css .= $color_mapping[$option] . ': ' . $color . ';';
@@ -286,4 +399,56 @@ function colors_invoke($module, $hook) {
     $args[0] = 'colors';
   }
   return call_user_func_array('module_invoke', $args);
+}
+
+/**
+ * Removes the generated CSS file, optionally recreating it.
+ */
+function colors_css_clear() {
+  ctools_include('css');
+  foreach (module_implements('colors_rebuild') as $module) {
+    ctools_css_clear($module . ':colors');
+    if (module_invoke($module, 'colors_rebuild')) {
+      colors_create_css($module);
+    }
+  }
+}
+
+/**
+ * Wrapper function for colors_set_colors()
+ *
+ * @todo Remove when border and color are exposed.
+ */
+function _colors_set_colors($classes, $module = 'colors', $background = '#000000', $border = '#000000', $text = '#ffffff') {
+  $border = $background;
+  $colors = array(
+    'background' => $background,
+    'border' => $border,
+    'text' => $text,
+  );
+  colors_set_colors($classes, $colors, $module);
+}
+
+if (module_exists('node') && !function_exists('node_colors_api')) {
+  function node_colors_api() {
+    return colors_colors_api();
+  }
+}
+
+if (module_exists('user') && !function_exists('user_colors_api')) {
+  function user_colors_api() {
+    return colors_colors_api();
+  }
+}
+
+if (module_exists('taxonomy') && !function_exists('taxonomy_colors_api')) {
+  function taxonomy_colors_api() {
+    return colors_colors_api();
+  }
+}
+
+if (module_exists('og') && !function_exists('og_colors_api')) {
+  function og_colors_api() {
+    return colors_colors_api();
+  }
 }
