@@ -132,3 +132,141 @@ function theme_colors_admin_settings($variables) {
 
   return drupal_render_children($form);
 }
+
+/**
+ * Generate an admin form for each Colors plugin.
+ *
+ * @param array $form
+ *   An empty array for the form, this is always overridden.
+ * @param array $form_state
+ *   The form's state.
+ * @param string $type
+ *   The machine name of the plugin type.
+ *
+ * @return array
+ *   The built form.
+ */
+function colors_generate_settings_form($form, $form_state, $type) {
+  colors_include_api();
+  $info = module_invoke_all('colors_info');
+  if (empty($info[$type])) {
+    return;
+  }
+
+  $info = $info[$type];
+
+  $form = colors_load_colorpicker();
+  $form['#attached']['css'][] = ctools_attach_css('colors.admin', 'colors');
+  $form['#colors_type'] = $type;
+  $form['#colors_info'] = $info;
+
+
+  $form[$type . '_colors'] = array(
+    '#type' => 'item',
+    '#title' => t('!title colors', array('!title' => $info['title'])),
+    '#description' => $info['long_description'],
+  );
+
+  $multiple = !empty($info['multiple_function']);
+  $repeat = !empty($multiple) ? $info['multiple_function']() : array(NULL => NULL);
+
+  foreach ($repeat as $id => $repeat_value) {
+    $enabled_type = !empty($multiple) ? $type . '_' . $id : $type;
+    $enabled_string = 'colors_' . $enabled_type . '_enabled';
+    $enabled = variable_get($enabled_string, FALSE);
+
+    $element = array(
+      '#type' => 'fieldset',
+      '#title' => !empty($multiple) ? $repeat_value->name : t('!title colors', array('!title' => $info['title'])),
+      '#collapsible' => TRUE,
+      '#collapsed' => !$enabled,
+    );
+    $element[$enabled_string] = array(
+      '#type' => 'checkbox',
+      '#title' => $info['short_description'],
+      '#default_value' => $enabled,
+    );
+    foreach ($info['function']($id) as $key => $value) {
+      $class = 'colors_' . $type . '_' . $key;
+      $colors = colors_get_colors($class, 'colors');
+
+      $element[$class] = array(
+        '#title' => t($value),
+        '#type' => 'textfield',
+        '#attributes' => array('class' => array('colorpicker-input')),
+        '#default_value' => $colors['background'],
+        '#size' => 7,
+        '#maxlength' => 7,
+        '#states' => array(
+          'visible' => array(
+            ':input[name="' . $enabled_string . '"]' => array('checked' => TRUE),
+          ),
+        ),
+      );
+    }
+    if (!empty($multiple)) {
+      $form[$id] = $element;
+    }
+    else {
+      $form['fieldset'] = $element;
+    }
+  }
+
+  $form['actions']['#type'] = 'actions';
+  $form['actions']['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Save configuration'),
+  );
+  $form['#submit'][] = 'colors_admin_type_settings_submit';
+
+  // Add the additional submission handler, if necessary.
+  if (!empty($info['submit'])) {
+    $form['#submit'][] = 'colors_admin_' . $type . '_settings_submit';
+  }
+
+  // Add the additional validation handler, if necessary.
+  if (!empty($info['validate'])) {
+    $form['#validate'][] = 'colors_admin_' . $type . '_settings_validate';
+  }
+
+  return $form;
+}
+
+/**
+ * Form submission handler for colors_generate_settings_form().
+ */
+function colors_admin_type_settings_submit($form, &$form_state) {
+  if (empty($form['#colors_type']) || empty($form['#colors_info'])) {
+    return;
+  }
+
+  $type = $form['#colors_type'];
+  $info = $form['#colors_info'];
+
+  $multiple = !empty($info['multiple_function']);
+  $repeat = !empty($multiple) ? $info['multiple_function']() : array(NULL => NULL);
+
+  $multiple_enabled = FALSE;
+  foreach ($repeat as $id => $repeat_value) {
+    $enabled_type = !empty($multiple) ? $type . '_' . $id : $type;
+    $enabled_string = 'colors_' . $enabled_type . '_enabled';
+
+    variable_set($enabled_string, (bool) $form_state['values'][$enabled_string]);
+    if (!empty($form_state['values'][$enabled_string])) {
+      $multiple_enabled = TRUE;
+    }
+
+    foreach ($info['function']($id) as $key => $value) {
+      $class = 'colors_' . $type . '_' . $key;
+      _colors_set_colors($class, $type, $form_state['values'][$class]);
+    }
+  }
+
+  if ($multiple && $multiple_enabled) {
+    variable_set('colors_' . $type . '_enabled', TRUE);
+  }
+
+  colors_css_clear();
+
+  drupal_set_message(t('The configuration options have been saved.'));
+}

@@ -15,41 +15,31 @@ function colors_menu() {
     'file' => 'colors.admin.inc',
     'file path' => drupal_get_path('module', 'colors') . '/includes',
     'page callback' => 'drupal_get_form',
+    'page arguments' => array('colors_admin_settings'),
     'access arguments' => array('administer site configuration'),
   );
 
   $items['admin/config/user-interface/colors'] = array(
     'title' => 'Colors',
     'description' => 'Adjust Colors settings.',
-    'page arguments' => array('colors_admin_settings'),
     'type' => MENU_NORMAL_ITEM,
-    'weight' => 1,
   ) + $base;
-
-  foreach (colors_include_api() as $module => $data) {
-    if (!$colors_info = module_invoke($module, 'colors_info')) {
-      continue;
-    }
-
-    foreach ($colors_info as $type => $info) {
-      $items["admin/config/user-interface/colors/$type"] = array(
-        'title' => $info['title'],
-        'page callback' => 'drupal_get_form',
-        'page arguments' => array("colors_admin_$type" . '_settings'),
-        'file' => "$module.colors.inc",
-        'file path' => $data['path'],
-        'access arguments' => array('administer site configuration'),
-        'type' => MENU_LOCAL_TASK,
-      );
-    }
-  }
 
   $items['admin/config/user-interface/colors/settings'] = array(
     'title' => 'Settings',
-    'page arguments' => array('colors_admin_settings'),
     'type' => MENU_DEFAULT_LOCAL_TASK,
     'weight' => -10,
   ) + $base;
+
+  // Create a local task for each plugin.
+  colors_include_api();
+  foreach (module_invoke_all('colors_info') as $type => $info) {
+    $items["admin/config/user-interface/colors/$type"] = array(
+      'title' => $info['title'],
+      'page arguments' => array('colors_generate_settings_form', $type),
+      'type' => MENU_LOCAL_TASK,
+    ) + $base;
+  }
 
   return $items;
 }

@@ -51,6 +51,34 @@ function hook_colors_rebuild() {
 }
 
 /**
+ * Declare a colors plugin.
+ *
+ * @return array
+ *   An associative array containing one or more coloring types, keyed by the
+ *   type name, containing an associative array with the following keys:
+ *   - title: The untranslated display name of this type.
+ *   - short_description: The text to display for the checkbox.
+ *   - long_description: The text to describe the fieldset.
+ *   - function: The callback for gathering the type options.
+ *   - multiple_function: (optional) If the type contains sub-types, this will
+ *     be used as the top-level callback.
+ *   - validate: (optional) A boolean, if TRUE an additional form validation
+ *   - handler, colors_admin_TYPE_settings_validate(), will be used.
+ *   - submit: (optional) A boolean, if TRUE an additional form submission
+ *     handler, colors_admin_TYPE_settings_submit(), will be used.
+ */
+function hook_colors_info() {
+  return array(
+    'node_type' => array(
+      'title' => 'Node type',
+      'short_description' => t('Enable colors for node types'),
+      'long_description' => t('Colors for node types. If enabled, you may set colors for each node type below.'),
+      'function' => 'node_type_get_names',
+    ),
+  );
+}
+
+/**
  * Provide a way for modules to add the classes used to their markup.
  *
  * @param object $entity
