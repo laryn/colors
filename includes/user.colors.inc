@@ -16,6 +16,12 @@ function user_colors_info() {
       'long_description' => t('Colors for user roles. If enabled, you may set colors for each user role below.'),
       'function' => 'user_roles',
     ),
+    'user_current' => array(
+      'title' => 'Current user',
+      'short_description' => t('Enable a color for the current user'),
+      'long_description' => t('A color for the current user. If enabled, you may set one color for items the current user has authored.'),
+      'function' => '_user_current',
+    ),
   );
 }
 
@@ -33,5 +39,15 @@ function user_colors_classes($entity) {
       }
     }
   }
+  if (variable_get('colors_user_current_enabled', FALSE)) {
+    global $user;
+    if ($user->uid == $entity->uid) {
+      $class_names[] = 'colors-user-current-0';
+    }
+  }
   return $class_names;
+}
+
+function _user_current() {
+  return array('Current user');
 }
