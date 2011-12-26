@@ -33,12 +33,27 @@ function colors_menu() {
 
   // Create a local task for each plugin.
   colors_include_api();
-  foreach (module_invoke_all('colors_info') as $type => $info) {
-    $items["admin/config/user-interface/colors/$type"] = array(
-      'title' => $info['title'],
-      'page arguments' => array('colors_generate_settings_form', $type),
-      'type' => MENU_LOCAL_TASK,
-    ) + $base;
+  foreach (module_implements('colors_info') as $module) {
+    // Because a module can provide more than one color type, the first becomes
+    // the default, and the rest are secondary tabs.
+    $first = TRUE;
+    foreach (module_invoke($module, 'colors_info') as $type => $info) {
+      if ($first) {
+        $items["admin/config/user-interface/colors/$module"] = array(
+          'title' => drupal_ucfirst($module),
+          'page arguments' => array('colors_generate_settings_form', $type),
+          'type' => MENU_LOCAL_TASK,
+        ) + $base;
+      }
+
+      $items["admin/config/user-interface/colors/$module/$type"] = array(
+        'title' => $info['title'],
+        'page arguments' => array('colors_generate_settings_form', $type),
+        'type' => $first ? MENU_DEFAULT_LOCAL_TASK : MENU_LOCAL_TASK,
+      ) + $base;
+
+      $first = FALSE;
+    }
   }
 
   return $items;
