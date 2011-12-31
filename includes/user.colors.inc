@@ -41,7 +41,7 @@ function user_colors_classes($entity) {
   }
   if (variable_get('colors_user_current_enabled', FALSE)) {
     global $user;
-    if ($user->uid == $entity->uid) {
+    if (!empty($entity->uid) && $user->uid == $entity->uid) {
       $class_names[] = 'colors-user-current-0';
     }
   }
