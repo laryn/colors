@@ -15,6 +15,10 @@ function colors_install() {
     'text' => '#ffffff',
   );
   colors_set_colors('colors_default', $color_options);
+  // Dynamically generated variable data was detected on the following lines.
+  // /colors/includes/colors.admin.inc line 50
+  // /colors/includes/colors.admin.inc line 53
+  // /colors/includes/taxonomy.colors.inc line 62
 }
 
 /**
@@ -47,7 +51,7 @@ function colors_schema() {
         'not null' => TRUE,
         'description' => 'Color configuration array.',
         'size' => 'big',
-        'serialize' => TRUE
+        'serialize' => TRUE,
       ),
       'module' => array(
         'type' => 'varchar',
@@ -61,4 +65,38 @@ function colors_schema() {
     'primary key' => array('selector'),
   );
   return $schema;
+}
+
+/**
+ * Implements hook_update_last_removed().
+ */
+function colors_update_last_removed() {
+  return;
+}
+
+/**
+ * Implements hook_update_N().
+ */
+function colors_update_1000() {
+  $config = config('colors.settings');
+  $config->set('colors_module_enabled', update_variable_get('colors_module_enabled', 'dynamic variable in file /colors/includes/colors.admin.inc line 50'));
+  $config->set('colors_weight_module', update_variable_get('colors_weight_module', 'dynamic variable in file /colors/includes/colors.admin.inc line 53'));
+  $config->set('colors_process_order_enabled', update_variable_get('colors_process_order_enabled', 'FALSE'));
+  $config->set('colors_node_type_enabled', update_variable_get('colors_node_type_enabled', 'FALSE'));
+  $config->set('colors_og_enabled', update_variable_get('colors_og_enabled', 'FALSE'));
+  $config->set('colors_taxonomy_term_enabled', update_variable_get('colors_taxonomy_term_enabled', 'FALSE'));
+  $config->set('colors_taxonomy_term_vid_enabled', update_variable_get('colors_taxonomy_term_vid_enabled', 'dynamic variable in file /colors/includes/taxonomy.colors.inc line 62'));
+  $config->set('colors_user_role_enabled', update_variable_get('colors_user_role_enabled', 'FALSE'));
+  $config->set('colors_user_current_enabled', update_variable_get('colors_user_current_enabled', 'FALSE'));
+  $config->set('colors_users_enabled', update_variable_get('colors_users_enabled', 'FALSE'));
+  update_variable_del('colors_module_enabled');
+  update_variable_del('colors_weight_module');
+  update_variable_del('colors_process_order_enabled');
+  update_variable_del('colors_node_type_enabled');
+  update_variable_del('colors_og_enabled');
+  update_variable_del('colors_taxonomy_term_enabled');
+  update_variable_del('colors_taxonomy_term_vid_enabled');
+  update_variable_del('colors_user_role_enabled');
+  update_variable_del('colors_user_current_enabled');
+  update_variable_del('colors_users_enabled');
 }

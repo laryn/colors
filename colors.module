@@ -13,8 +13,8 @@ function colors_menu() {
 
   $base = array(
     'file' => 'colors.admin.inc',
-    'file path' => drupal_get_path('module', 'colors') . '/includes',
-    'page callback' => 'drupal_get_form',
+    'file path' => backdrop_get_path('module', 'colors') . '/includes',
+    'page callback' => 'backdrop_get_form',
     'page arguments' => array('colors_admin_settings'),
     'access arguments' => array('administer site configuration'),
   );
@@ -40,7 +40,7 @@ function colors_menu() {
     foreach (module_invoke($module, 'colors_info') as $type => $info) {
       if ($first) {
         $items["admin/config/user-interface/colors/$module"] = array(
-          'title' => drupal_ucfirst($module),
+          'title' => backdrop_ucfirst($module),
           'page arguments' => array('colors_generate_settings_form', $type),
           'type' => MENU_LOCAL_TASK,
         ) + $base;
@@ -103,7 +103,7 @@ function colors_ctools_plugin_api_hook_name() {
 function colors_colors_api() {
   return array(
     'api' => colors_api_version(),
-    'path' => drupal_get_path('module', 'colors') . '/includes',
+    'path' => backdrop_get_path('module', 'colors') . '/includes',
   );
 }
 
@@ -214,9 +214,9 @@ function colors_set_colors($selector, $color, $module = 'colors') {
   db_merge('colors')
     ->key(array('selector' => $selector))
     ->fields(array(
-      'color' => serialize($color),
-      'module' => $module,
-    ))
+    'color' => serialize($color),
+    'module' => $module,
+  ))
     ->execute();
 }
 
@@ -255,8 +255,8 @@ function colors_delete_selectors($module) {
 function colors_rename_selector($old_selector, $new_selector) {
   db_update('colors')
     ->fields(array(
-      'selector' => $new_selector,
-    ))
+    'selector' => $new_selector,
+  ))
     ->condition('selector', $old_selector)
     ->execute();
 }
@@ -282,8 +282,18 @@ function colors_get_color_options($module = 'colors') {
 function colors_colors_get_color_mapping() {
   return array(
     'background' => 'background-color',
-    'text' =>  'color',
+    'text' => 'color',
     'border' => 'border-color',
+  );
+}
+
+/**
+ * Implements hook_config_info().
+ */
+function colors_config_info() {
+  $prefixes['colors.settings'] = array(
+    'label' => t('Module name settings'),
+    'group' => t('Configuration'),
   );
 }
 
@@ -297,6 +307,7 @@ function colors_colors_get_color_mapping() {
  *   The filename of the generated CSS.
  */
 function colors_create_css($caller) {
+  $config = config('colors.settings');
   ctools_include('css');
   $filename = ctools_css_retrieve($caller . ':colors');
   if (!$filename) {
@@ -304,10 +315,10 @@ function colors_create_css($caller) {
     $css = array();
     $delta = 0;
     foreach (module_invoke_all('colors_info') as $module => $info) {
-      if (!variable_get('colors_' . $module . '_enabled', FALSE)) {
+      if (!$config->get('colors_' . $module . '_enabled')) {
         continue;
       }
-      $weight = variable_get('colors_weight_' . $module, $delta - 100);
+      $weight = $config->get('colors_weight_' . $module);
       if (!isset($css[$weight])) {
         $css[$weight] = '';
       }
@@ -345,7 +356,7 @@ function colors_build_css($selector, $colors, $module = 'colors', $default_color
   }
 
   // Rewrite the selector if needed
-  $css = colors_invoke($module, 'colors_build_selector', drupal_html_class($selector));
+  $css = colors_invoke($module, 'colors_build_selector', backdrop_html_class($selector));
   $css .= ' {';
   foreach ($colors as $option => $color) {
     $css .= $color_mapping[$option] . ': ' . $color . ';';
@@ -377,7 +388,7 @@ function colors_load_colorpicker() {
   // JS for our Farbtastic integration.
   ctools_add_js('colors.admin', 'colors');
   // CSS and JS for Farbtastic color picker.
-  drupal_add_library('system', 'farbtastic');
+  backdrop_add_library('system', 'farbtastic');
 
   return array(
     'color_picker' => array(

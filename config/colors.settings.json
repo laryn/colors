@@ -1,0 +1,13 @@
+{
+    "_config_name": "colors.settings",
+    "colors_module_enabled": "dynamic variable in file /colors/includes/colors.admin.inc line 50",
+    "colors_weight_module": "dynamic variable in file /colors/includes/colors.admin.inc line 53",
+    "colors_process_order_enabled": "FALSE",
+    "colors_node_type_enabled": "FALSE",
+    "colors_og_enabled": "FALSE",
+    "colors_taxonomy_term_enabled": "FALSE",
+    "colors_taxonomy_term_vid_enabled": "dynamic variable in file /colors/includes/taxonomy.colors.inc line 62",
+    "colors_user_role_enabled": "FALSE",
+    "colors_user_current_enabled": "FALSE",
+    "colors_users_enabled": "FALSE"
+}

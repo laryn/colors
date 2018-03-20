@@ -41,7 +41,8 @@ function _colors_taxonomy_term_callback($vid) {
  * Implements hook_colors_classes().
  */
 function taxonomy_colors_classes($entity) {
-  if (!variable_get('colors_taxonomy_term_enabled', FALSE)) {
+  $config = config('colors.settings');
+  if (!$config->get('colors_taxonomy_term_enabled')) {
     return array();
   }
 
@@ -59,7 +60,7 @@ function taxonomy_colors_classes($entity) {
 
   $class_names = array();
   foreach (taxonomy_get_vocabularies() as $vid => $vocab) {
-    if (variable_get('colors_taxonomy_term_' . $vid . '_enabled', FALSE)) {
+    if ($config->get('colors_taxonomy_term_' . $vid . '_enabled')) {
       // If enabled, get all the terms in the taxonomy.
       foreach (taxonomy_get_tree($vid) as $term) {
         if (in_array($term->tid, $tids)) {

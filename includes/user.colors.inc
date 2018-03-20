@@ -37,21 +37,22 @@ function user_colors_info() {
  * Provide colors per user role.
  */
 function user_colors_classes($entity) {
+  $config = config('colors.settings');
   $class_names = array();
-  if (variable_get('colors_user_role_enabled', FALSE)) {
+  if ($config->get('colors_user_role_enabled')) {
     if ($entity->entity_type == 'user' && !empty($entity->roles)) {
       foreach ($entity->roles as $role_id => $role) {
         $class_names[] = 'colors-user-role-' . $role_id;
       }
     }
   }
-  if (variable_get('colors_user_current_enabled', FALSE)) {
+  if ($config->get('colors_user_current_enabled')) {
     global $user;
     if (!empty($entity->uid) && $user->uid == $entity->uid) {
       $class_names[] = 'colors-user-current-0';
     }
   }
-  if (variable_get('colors_users_enabled', FALSE)) {
+  if ($config->get('colors_users_enabled')) {
     if ($entity->entity_type == 'user' || $entity->entity_type == 'node') {
       $class_names[] = 'colors-users-' . $entity->uid;
     }

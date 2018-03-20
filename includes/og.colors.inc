@@ -40,7 +40,7 @@ function _colors_og_callback() {
  */
 function og_colors_classes($entity) {
   $class_names = array();
-  if (variable_get('colors_og_enabled', FALSE)) {
+  if (config_get('colors.settings', 'colors_og_enabled')) {
     list($id) = entity_extract_ids($entity->entity_type, $entity);
     if (!empty($id)) {
       foreach (og_get_entity_groups($entity->entity_type, $entity) as $gid) {

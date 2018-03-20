@@ -9,6 +9,7 @@
  * Form constructor for the Colors admin form.
  */
 function colors_admin_settings() {
+  $config = config('colors.settings');
   $form = colors_load_colorpicker();
   $default_colors = colors_get_colors('colors_default');
 
@@ -36,7 +37,7 @@ function colors_admin_settings() {
     'enabled' => array(
       '#type' => 'checkbox',
       '#title' => t('Change the CSS processing order.'),
-      '#default_value' => variable_get('colors_process_order_enabled', FALSE),
+      '#default_value' => $config->get('colors_process_order_enabled'),
       '#description' => t('Color order is cascading, CSS from modules at the bottom will override the top.'),
     ),
   );
@@ -47,10 +48,10 @@ function colors_admin_settings() {
   );
   $delta = 0;
   foreach (module_invoke_all('colors_info') as $module => $info) {
-    if (!variable_get("colors_$module" . '_enabled', FALSE)) {
+    if (!$config->get("colors_$module" . '_enabled')) {
       continue;
     }
-    $weight = variable_get('colors_weight_' . $module, $delta);
+    $weight = $config->get('colors_weight_' . $module);
     $form['modules'][$module]['#name'] = $info['title'];
     $form['modules'][$module]['#weight'] = $weight;
     $form['modules'][$module]['weight'] = array(
@@ -91,10 +92,10 @@ function colors_admin_settings() {
  */
 function colors_admin_settings_submit($form, &$form_state) {
   _colors_set_colors('colors_default', 'colors', $form_state['values']['default_color']['input']);
-  variable_set('colors_process_order_enabled', $form_state['values']['process_order']['enabled']);
+  config_set('colors.settings', 'colors_process_order_enabled', $form_state['values']['process_order']['enabled']);
 
   foreach ($form_state['values']['modules'] as $module => $weight) {
-    variable_set('colors_weight_' . $module, $weight['weight']);
+    config_set('colors.settings', 'colors_weight_' . $module, $weight['weight']);
   }
 
   colors_css_clear();
@@ -114,9 +115,12 @@ function theme_colors_admin_settings($variables) {
   foreach (element_children($form['modules']) as $module) {
     $row = array();
     $row[] = $form['modules'][$module]['#name'];
-    $row[] = drupal_render($form['modules'][$module]['weight']);
+    $row[] = backdrop_render($form['modules'][$module]['weight']);
 
-    $rows[] = array('data' => $row, 'class' => array('draggable'));
+    $rows[] = array(
+      'data' => $row,
+      'class' => array('draggable'),
+    );
   }
 
   $form['order_settings']['table'] = array(
@@ -128,9 +132,9 @@ function theme_colors_admin_settings($variables) {
     '#rows' => $rows,
     '#attributes' => array('id' => 'colors-settings'),
   );
-  drupal_add_tabledrag('colors-settings', 'order', 'sibling', 'colors-weight');
+  backdrop_add_tabledrag('colors-settings', 'order', 'sibling', 'colors-weight');
 
-  return drupal_render_children($form);
+  return backdrop_render_children($form);
 }
 
 /**
@@ -173,6 +177,7 @@ function colors_generate_settings_form($form, $form_state, $type) {
   foreach ($repeat as $id => $repeat_value) {
     $enabled_type = !empty($multiple) ? $type . '_' . $id : $type;
     $enabled_string = 'colors_' . $enabled_type . '_enabled';
+    // TODO This variable was probably removed in Backdrop without replacement.
     $enabled = variable_get($enabled_string, FALSE);
 
     $element = array(
@@ -251,6 +256,7 @@ function colors_admin_type_settings_submit($form, &$form_state) {
     $enabled_type = !empty($multiple) ? $type . '_' . $id : $type;
     $enabled_string = 'colors_' . $enabled_type . '_enabled';
 
+    // TODO This variable was probably removed in Backdrop without replacement.
     variable_set($enabled_string, (bool) $form_state['values'][$enabled_string]);
     if (!empty($form_state['values'][$enabled_string])) {
       $multiple_enabled = TRUE;
@@ -263,10 +269,10 @@ function colors_admin_type_settings_submit($form, &$form_state) {
   }
 
   if ($multiple && $multiple_enabled) {
-    variable_set('colors_' . $type . '_enabled', TRUE);
+    config_set('colors.settings', 'colors_' . $type . '_enabled', TRUE);
   }
 
   colors_css_clear();
 
-  drupal_set_message(t('The configuration options have been saved.'));
+  backdrop_set_message(t('The configuration options have been saved.'));
 }

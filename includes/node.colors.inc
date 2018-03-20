@@ -26,7 +26,7 @@ function node_colors_info() {
  */
 function node_colors_classes($entity) {
   $class_names = array();
-  if (variable_get('colors_node_type_enabled', FALSE)) {
+  if (config_get('colors.settings', 'colors_node_type_enabled')) {
     if ($entity->entity_type == 'node') {
       $class_names[] = 'colors-node-type-' . $entity->type;
     }
